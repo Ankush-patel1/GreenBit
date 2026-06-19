@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-brand-forest: #1A231F;
+  --color-brand-leaf: #3A6047;
+  --color-brand-mist: #EAECE9;
+  --color-brand-amber: #C48D4D;
+  --color-brand-chalk: #FBFBF9;
+  --color-brand-sand: #F4F3EE;
+
+  --font-heading: 'Lora', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-chalk text-brand-forest/90 font-body antialiased selection:bg-brand-leaf selection:text-white;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-medium tracking-tight text-brand-forest;
+  }
+}
+
+/* Custom premium scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-brand-chalk;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-brand-leaf/20 rounded-full hover:bg-brand-leaf/40 transition-colors;
+}
