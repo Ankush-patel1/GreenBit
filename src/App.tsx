@@ -97,6 +97,7 @@ function App() {
                 <DashboardPage
                   userProfile={userProfile}
                   onLogActivityClick={handleLogActivityClick}
+                  onNavigate={setCurrentTab}
                 />
               )}
 

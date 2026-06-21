@@ -268,10 +268,10 @@ export const OnboardingWizard = ({ onComplete }: OnboardingWizardProps) => {
             {/* STEP 3 */}
             {step === 3 && (
               <div className="space-y-5 animate-fade-in">
-                <div className="space-y-2.5">
-                  <label className="text-xs font-heading font-semibold text-brand-forest/75 uppercase tracking-wide">
+                <fieldset className="space-y-2.5">
+                  <legend className="text-xs font-heading font-semibold text-brand-forest/75 uppercase tracking-wide mb-1">
                     Primary Transit Method
-                  </label>
+                  </legend>
                   <div className="grid grid-cols-2 gap-3">
                     {transportOptions.map((opt) => (
                       <button
@@ -289,12 +289,12 @@ export const OnboardingWizard = ({ onComplete }: OnboardingWizardProps) => {
                       </button>
                     ))}
                   </div>
-                </div>
+                </fieldset>
 
-                <div className="space-y-2.5">
-                  <label className="text-xs font-heading font-semibold text-brand-forest/75 uppercase tracking-wide">
+                <fieldset className="space-y-2.5">
+                  <legend className="text-xs font-heading font-semibold text-brand-forest/75 uppercase tracking-wide mb-1">
                     Dietary Habits
-                  </label>
+                  </legend>
                   <div className="grid grid-cols-2 gap-3">
                     {dietOptions.map((opt) => (
                       <button
@@ -312,7 +312,7 @@ export const OnboardingWizard = ({ onComplete }: OnboardingWizardProps) => {
                       </button>
                     ))}
                   </div>
-                </div>
+                </fieldset>
               </div>
             )}
 

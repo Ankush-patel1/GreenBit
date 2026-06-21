@@ -374,9 +374,9 @@ export const LandingPage = ({ onStartApp }: LandingPageProps) => {
             <div className="space-y-3">
               <h4 className="text-xs font-heading font-bold text-white uppercase tracking-wider">Company</h4>
               <ul className="space-y-2 text-xs text-brand-chalk/65">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Methodology</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
+                <li><button onClick={onStartApp} className="hover:text-white transition-colors">About Us</button></li>
+                <li><button onClick={onStartApp} className="hover:text-white transition-colors">Methodology</button></li>
+                <li><button onClick={onStartApp} className="hover:text-white transition-colors">Security</button></li>
               </ul>
             </div>
           </div>
@@ -401,9 +401,9 @@ export const LandingPage = ({ onStartApp }: LandingPageProps) => {
         <div className="max-w-6xl mx-auto pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-brand-chalk/45">
           <span>&copy; 2026 GreenBit Inc. All rights reserved.</span>
           <div className="flex space-x-6">
-            <a href="#" className="hover:text-white">Privacy Policy</a>
-            <a href="#" className="hover:text-white">Terms of Service</a>
-            <a href="#" className="hover:text-white">Trust Center</a>
+            <button onClick={onStartApp} className="hover:text-white">Privacy Policy</button>
+            <button onClick={onStartApp} className="hover:text-white">Terms of Service</button>
+            <button onClick={onStartApp} className="hover:text-white">Trust Center</button>
           </div>
         </div>
       </footer>

@@ -7,8 +7,8 @@ export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
       <div
         ref={ref}
         className={cn(
-          "bg-white border border-brand-forest/10 rounded-lg overflow-hidden shadow-[0_1px_2px_rgba(26,35,31,0.04)] transition-all duration-200",
-          hoverable && "hover:border-brand-leaf/40 hover:shadow-[0_2px_8px_rgba(26,35,31,0.06)]",
+          "bg-white/80 backdrop-blur-xl border border-brand-forest/10 rounded-2xl overflow-hidden shadow-[0_2px_10px_rgba(16,32,22,0.04)] transition-all duration-300",
+          hoverable && "hover:border-brand-leaf/30 hover:shadow-[0_8px_30px_rgba(16,32,22,0.08)] hover:-translate-y-1",
           className
         )}
         {...props}
@@ -25,6 +25,7 @@ CardHeader.displayName = "CardHeader"
 
 export const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
+    // eslint-disable-next-line jsx-a11y/heading-has-content
     <h3
       ref={ref}
       className={cn("font-heading text-lg font-semibold leading-none tracking-tight text-brand-forest", className)}

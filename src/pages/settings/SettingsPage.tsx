@@ -99,10 +99,11 @@ export const SettingsPage = ({ userProfile, onUpdateProfile, onResetOnboarding }
               required
             />
             <div className="flex flex-col space-y-1">
-              <label className="text-xs font-heading font-semibold text-brand-forest uppercase tracking-wider">Household Size</label>
+              <label htmlFor="settings-household" className="text-xs font-heading font-semibold text-brand-forest uppercase tracking-wider">Household Size</label>
               <div className="flex items-center space-x-2 border border-brand-forest/10 rounded-xl bg-white p-1.5 focus-within:ring-2 focus-within:ring-brand-leaf/25">
                 <Users className="h-4 w-4 text-brand-forest/45 ml-2" />
                 <input
+                  id="settings-household"
                   type="number"
                   min="1"
                   className="w-full border-0 focus:ring-0 text-sm font-body bg-transparent py-1"
@@ -112,10 +113,11 @@ export const SettingsPage = ({ userProfile, onUpdateProfile, onResetOnboarding }
               </div>
             </div>
             <div className="flex flex-col space-y-1">
-              <label className="text-xs font-heading font-semibold text-brand-forest uppercase tracking-wider">Monthly Electricity Consumption (kWh)</label>
+              <label htmlFor="settings-electricity" className="text-xs font-heading font-semibold text-brand-forest uppercase tracking-wider">Monthly Electricity Consumption (kWh)</label>
               <div className="flex items-center space-x-2 border border-brand-forest/10 rounded-xl bg-white p-1.5 focus-within:ring-2 focus-within:ring-brand-leaf/25">
                 <Info className="h-4 w-4 text-brand-forest/45 ml-2" />
                 <input
+                  id="settings-electricity"
                   type="number"
                   min="0"
                   className="w-full border-0 focus:ring-0 text-sm font-body bg-transparent py-1"
@@ -136,11 +138,13 @@ export const SettingsPage = ({ userProfile, onUpdateProfile, onResetOnboarding }
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-heading font-semibold text-brand-forest uppercase tracking-wider">Primary Transport Mode</label>
-              <div className="grid grid-cols-1 gap-2">
-                {transportOptions.map((opt) => (
-                  <label 
-                    key={opt.value} 
+              <fieldset>
+                <legend className="text-xs font-heading font-semibold text-brand-forest uppercase tracking-wider mb-2">Primary Transport Mode</legend>
+                <div className="grid grid-cols-1 gap-2">
+                  {transportOptions.map((opt) => (
+                    <label 
+                      key={opt.value} 
+                      htmlFor={`transport-${opt.value}`}
                     className={`flex items-center justify-between p-3 rounded-xl border text-sm font-body cursor-pointer transition-all ${
                       primaryTransport === opt.value 
                         ? "border-brand-leaf bg-brand-mist/20 text-brand-forest font-semibold" 
@@ -148,25 +152,29 @@ export const SettingsPage = ({ userProfile, onUpdateProfile, onResetOnboarding }
                     }`}
                   >
                     <span>{opt.label}</span>
-                    <input 
-                      type="radio" 
-                      name="primaryTransport"
+                      <input 
+                        id={`transport-${opt.value}`}
+                        type="radio" 
+                        name="primaryTransport"
                       value={opt.value}
                       checked={primaryTransport === opt.value}
                       onChange={() => setPrimaryTransport(opt.value)}
                       className="text-brand-leaf focus:ring-brand-leaf"
                     />
                   </label>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </fieldset>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-heading font-semibold text-brand-forest uppercase tracking-wider">Dietary Preferences</label>
-              <div className="grid grid-cols-1 gap-2">
-                {dietOptions.map((opt) => (
-                  <label 
-                    key={opt.value} 
+              <fieldset>
+                <legend className="text-xs font-heading font-semibold text-brand-forest uppercase tracking-wider mb-2">Dietary Preferences</legend>
+                <div className="grid grid-cols-1 gap-2">
+                  {dietOptions.map((opt) => (
+                    <label 
+                      key={opt.value} 
+                      htmlFor={`diet-${opt.value}`}
                     className={`flex items-center justify-between p-3 rounded-xl border text-sm font-body cursor-pointer transition-all ${
                       dietType === opt.value 
                         ? "border-brand-leaf bg-brand-mist/20 text-brand-forest font-semibold" 
@@ -174,17 +182,19 @@ export const SettingsPage = ({ userProfile, onUpdateProfile, onResetOnboarding }
                     }`}
                   >
                     <span>{opt.label}</span>
-                    <input 
-                      type="radio" 
-                      name="dietType"
+                      <input 
+                        id={`diet-${opt.value}`}
+                        type="radio" 
+                        name="dietType"
                       value={opt.value}
                       checked={dietType === opt.value}
                       onChange={() => setDietType(opt.value)}
                       className="text-brand-leaf focus:ring-brand-leaf"
                     />
                   </label>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </fieldset>
             </div>
           </CardContent>
           <CardFooter className="flex items-center justify-between border-t border-brand-forest/5 pt-4">

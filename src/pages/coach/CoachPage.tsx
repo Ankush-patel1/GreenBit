@@ -80,7 +80,7 @@ export const CoachPage = ({ userProfile }: CoachPageProps) => {
       } else {
         setMessages(prev => [...prev, { sender: "coach", text: "**Error**: Failed to establish connection with GreenBit Coach API. Please verify server status." }])
       }
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, { sender: "coach", text: "**Error**: Unable to reach backend service. Check if your FastAPI server is running." }])
     } finally {
       setLoading(false)
@@ -100,7 +100,7 @@ export const CoachPage = ({ userProfile }: CoachPageProps) => {
       }
       // Bullet lists
       if (line.startsWith("- ") || line.startsWith("* ")) {
-        const clean = line.replace(/^[\-\*]\s+/, "")
+        const clean = line.replace(/^[-*]\s+/, "")
         return (
           <li key={idx} className="ml-4 list-disc text-xs text-brand-forest/80 leading-relaxed py-0.5 font-body">
             {parseBoldText(clean)}

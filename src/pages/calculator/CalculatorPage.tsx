@@ -161,10 +161,10 @@ export const CalculatorPage = () => {
                 value={distance}
                 onChange={(e) => setDistance(parseFloat(e.target.value) || 0)}
               />
-              <div className="space-y-1.5 text-left">
-                <label className="text-xs font-heading font-semibold text-brand-forest/75 uppercase tracking-wide">
+              <fieldset className="space-y-1.5 text-left">
+                <legend className="text-xs font-heading font-semibold text-brand-forest/75 uppercase tracking-wide">
                   Vehicle Fuel Type
-                </label>
+                </legend>
                 <div className="grid grid-cols-2 gap-2">
                   {fuelOptions.map((opt) => (
                     <button
@@ -181,7 +181,7 @@ export const CalculatorPage = () => {
                     </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
             </div>
           </div>
 

@@ -111,8 +111,8 @@ export const AuthPages = ({ initialView = "login", onAuthSuccess, onNavigateHome
           setSuccess("Password reset instructions sent to email.")
         }
       }
-    } catch (err) {
-      setError("Server connection failed. Please try again later.")
+    } catch {
+      setError("An unexpected error occurred. Please try again.")
     } finally {
       setLoading(false)
     }

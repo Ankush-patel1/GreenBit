@@ -25,6 +25,8 @@ backend/venv/
 backend/__pycache__/
 backend/.pytest_cache/
 .pytest_cache/
+.coverage
+backend/.coverage
 __pycache__/
 *.pyc
 *.pyo

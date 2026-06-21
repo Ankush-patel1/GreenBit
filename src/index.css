@@ -3,15 +3,42 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-forest: #1A231F;
-  --color-brand-leaf: #3A6047;
-  --color-brand-mist: #EAECE9;
-  --color-brand-amber: #C48D4D;
-  --color-brand-chalk: #FBFBF9;
-  --color-brand-sand: #F4F3EE;
+  --color-brand-forest: #102016;
+  --color-brand-leaf: #2A5A3B;
+  --color-brand-mist: #F2F5F3;
+  --color-brand-amber: #D98324;
+  --color-brand-chalk: #FCFCF9;
+  --color-brand-sand: #EAE6DF;
+  --color-brand-moss: #4A6342;
+  --color-brand-sage: #8DA399;
 
   --font-heading: 'Lora', Georgia, serif;
   --font-body: 'Inter', system-ui, sans-serif;
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-float: float 3s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/60 backdrop-blur-md border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)];
+  }
 }
 
 @layer base {

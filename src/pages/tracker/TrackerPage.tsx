@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import {
   PlusCircle,
   Sparkles,
@@ -19,20 +19,12 @@ import { Badge } from "../../components/ui/Badge"
 import { Modal } from "../../components/ui/Modal"
 import { CalculatorPage } from "../calculator/CalculatorPage"
 import { ActivitySkeleton } from "../../components/ui/Skeleton"
-import { API_BASE_URL } from "../../config/api"
-
-interface ActivityItem {
-  id: number
-  type: string
-  name: string
-  value: number
-  impact: number
-  date: string
-}
+import { useActivities } from "../../hooks/useActivities"
+import type { ActivityItem } from "../../hooks/useActivities"
 
 export const TrackerPage = () => {
   const [subTab, setSubTab] = useState<"timeline" | "calculator">("timeline")
-  const [activities, setActivities] = useState<ActivityItem[]>([])
+  const { activities, loading: fetching, createActivity, updateActivity, deleteActivity } = useActivities()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   
@@ -43,47 +35,9 @@ export const TrackerPage = () => {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
 
   const [loading, setLoading] = useState(false)
-  const [fetching, setFetching] = useState(true)
   const [success, setSuccess] = useState("")
   const [error, setError] = useState("")
   const [toastMessage, setToastMessage] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchActivities()
-  }, [])
-
-  const fetchActivities = async () => {
-    setFetching(true)
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/activities`, {
-        headers: {
-          "Authorization": `Bearer ${sessionStorage.getItem("greenbit_auth_token") || ""}`
-        }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setActivities(data)
-      } else {
-        throw new Error()
-      }
-    } catch (err) {
-      console.warn("Backend offline, loading cached mock data fallback", err)
-      const cached = localStorage.getItem("tracker_activities")
-      if (cached) {
-        setActivities(JSON.parse(cached))
-      } else {
-        const initialSeed = [
-          { id: 1, type: "transport", name: "Metro commute", value: 15, impact: -4.2, date: new Date().toISOString().split("T")[0] },
-          { id: 2, type: "food", name: "Vegetarian meals", value: 3, impact: -2.1, date: new Date().toISOString().split("T")[0] },
-          { id: 3, type: "energy", name: "Appliance eco use", value: 4, impact: -1.5, date: new Date(Date.now() - 86400000).toISOString().split("T")[0] }
-        ]
-        setActivities(initialSeed)
-        localStorage.setItem("tracker_activities", JSON.stringify(initialSeed))
-      }
-    } finally {
-      setFetching(false)
-    }
-  }
 
   const getCalculatedImpact = (activityType: string, activityVal: number) => {
     let impactFactor = 0
@@ -111,29 +65,14 @@ export const TrackerPage = () => {
     try {
       let response
       if (editingId) {
-        response = await fetch(`${API_BASE_URL}/api/activities/${editingId}`, {
-          method: "PUT",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${sessionStorage.getItem("greenbit_auth_token") || ""}`
-          },
-          body: JSON.stringify(payload)
-        })
+        response = await updateActivity(editingId, payload)
       } else {
-        response = await fetch(`${API_BASE_URL}/api/activities`, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${sessionStorage.getItem("greenbit_auth_token") || ""}`
-          },
-          body: JSON.stringify(payload)
-        })
+        response = await createActivity(payload)
       }
 
       if (response.ok) {
         setSuccess(editingId ? "Activity updated successfully." : "Activity logged successfully.")
         setIsModalOpen(false)
-        fetchActivities()
         resetForm()
         
         // Custom update points event trigger
@@ -143,30 +82,10 @@ export const TrackerPage = () => {
         })
         window.dispatchEvent(event)
       } else {
-        setError("Error writing record to database.")
+        setError(response.error || "Error writing record to database.")
       }
-    } catch (err) {
-      console.warn("Backend not active, saving to local storage cache fallback", err)
-      const list = [...activities]
-      if (editingId) {
-        const idx = list.findIndex((a) => a.id === editingId)
-        if (idx !== -1) {
-          list[idx] = { id: editingId, ...payload }
-        }
-      } else {
-        list.push({ id: Date.now(), ...payload })
-      }
-      setActivities(list)
-      localStorage.setItem("tracker_activities", JSON.stringify(list))
-      setSuccess(editingId ? "Activity updated (Simulated)." : "Activity logged (Simulated).")
-      setIsModalOpen(false)
-      resetForm()
-
-      const points = type === "transport" ? 20 : type === "energy" ? 25 : type === "food" ? 15 : 10
-      const event = new CustomEvent("gamification-updated", {
-        detail: { pointsAdded: points }
-      })
-      window.dispatchEvent(event)
+    } catch {
+      setError("Failed to fetch activities. Defaulting to local storage.")
     } finally {
       setLoading(false)
     }
@@ -174,41 +93,14 @@ export const TrackerPage = () => {
 
   const handleQuickAdd = async (preset: { type: string, name: string, value: number, points: number }) => {
     const impact = getCalculatedImpact(preset.type, preset.value)
-    const newActivity: ActivityItem = {
-      id: Date.now(),
+    
+    await createActivity({
       type: preset.type,
       name: preset.name,
       value: preset.value,
       impact,
       date: new Date().toISOString().split("T")[0]
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/activities`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${sessionStorage.getItem("greenbit_auth_token") || ""}`
-        },
-        body: JSON.stringify({
-          type: preset.type,
-          name: preset.name,
-          value: preset.value,
-          impact,
-          date: newActivity.date
-        })
-      })
-      if (response.ok) {
-        const added = await response.json()
-        setActivities(prev => [added, ...prev])
-      } else {
-        throw new Error()
-      }
-    } catch {
-      const updated = [newActivity, ...activities]
-      setActivities(updated)
-      localStorage.setItem("tracker_activities", JSON.stringify(updated))
-    }
+    })
 
     // Trigger toast notification
     setToastMessage(`Quick Logged "${preset.name}" (${impact} kg CO2e, +${preset.points} pts)`)
@@ -231,24 +123,7 @@ export const TrackerPage = () => {
   }
 
   const handleDelete = async (id: number) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/activities/${id}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${sessionStorage.getItem("greenbit_auth_token") || ""}`
-        }
-      })
-      if (response.ok) {
-        fetchActivities()
-      } else {
-        throw new Error()
-      }
-    } catch (err) {
-      console.warn("Backend offline, updating local cache fallback for delete", err)
-      const list = activities.filter((a) => a.id !== id)
-      setActivities(list)
-      localStorage.setItem("tracker_activities", JSON.stringify(list))
-    }
+    await deleteActivity(id)
   }
 
   const resetForm = () => {
@@ -514,10 +389,10 @@ export const TrackerPage = () => {
           )}
 
           {/* Type Select */}
-          <div className="space-y-1 text-left">
-            <label className="text-xs font-heading font-semibold text-brand-forest/75 uppercase tracking-wide">
+          <fieldset className="space-y-1 text-left">
+            <legend className="text-xs font-heading font-semibold text-brand-forest/75 uppercase tracking-wide">
               Activity Category
-            </label>
+            </legend>
             <div className="grid grid-cols-4 gap-2">
               {["transport", "energy", "food", "waste"].map((cat) => (
                 <button
@@ -534,7 +409,7 @@ export const TrackerPage = () => {
                 </button>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           <Input
             label="Activity Description"

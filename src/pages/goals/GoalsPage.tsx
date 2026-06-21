@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import {
   Award,
   Plus,
@@ -119,18 +119,6 @@ export const GoalsPage = () => {
   const [targetValue, setTargetValue] = useState("")
   const [currentValue, setCurrentValue] = useState("")
   const [unit, setUnit] = useState("kg CO2e")
-
-  useEffect(() => {
-    fetchGoals()
-  }, [])
-
-  // Auto-update unit when goal type changes
-  useEffect(() => {
-    const selected = GOAL_TYPES.find(gt => gt.value === type)
-    if (selected) {
-      setUnit(selected.defaultUnit)
-    }
-  }, [type])
 
   const fetchGoals = async () => {
     try {
@@ -468,10 +456,15 @@ export const GoalsPage = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-brand-forest mb-1.5">Goal Type</label>
+              <label htmlFor="goal-type" className="block text-xs font-semibold text-brand-forest mb-1.5">Goal Type</label>
               <select
+                id="goal-type"
                 value={type}
-                onChange={e => setType(e.target.value)}
+                onChange={e => {
+                  setType(e.target.value)
+                  const selected = GOAL_TYPES.find(gt => gt.value === e.target.value)
+                  if (selected) setUnit(selected.defaultUnit)
+                }}
                 className="w-full h-10 px-3 rounded-lg border border-brand-forest/15 bg-white text-sm text-brand-forest focus:outline-none focus:ring-1 focus:ring-brand-leaf font-body"
               >
                 {GOAL_TYPES.map(gt => (
@@ -516,3 +509,5 @@ export const GoalsPage = () => {
     </div>
   )
 }
+
+export default GoalsPage

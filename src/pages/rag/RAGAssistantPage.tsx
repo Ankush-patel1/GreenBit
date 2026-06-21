@@ -78,7 +78,7 @@ export const RAGAssistantPage = () => {
           text: "**Error**: Failed to establish connection with the RAG Assistant API. Verify server status."
         }])
       }
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, {
         sender: "bot",
         text: "**Error**: Unable to reach RAG backend service. Check if your FastAPI server is running."
@@ -108,7 +108,7 @@ export const RAGAssistantPage = () => {
         return <h2 key={idx} className="text-base font-heading font-extrabold text-brand-forest mt-4 mb-2">{line.replace("## ", "")}</h2>
       }
       if (line.startsWith("- ") || line.startsWith("* ")) {
-        const clean = line.replace(/^[\-\*]\s+/, "")
+        const clean = line.replace(/^[-*]\s+/, "")
         return (
           <li key={idx} className="ml-4 list-disc text-xs text-brand-forest/80 leading-relaxed py-0.5 font-body">
             {parseBoldText(clean)}

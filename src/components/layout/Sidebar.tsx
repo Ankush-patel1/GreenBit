@@ -73,6 +73,7 @@ export const Sidebar = ({ isOpen, onClose, currentTab, setCurrentTab }: SidebarP
 
   // Listen for custom gamification events instead of polling every 1s
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updateStreak()
     
     const handleUpdate = (e: Event) => {

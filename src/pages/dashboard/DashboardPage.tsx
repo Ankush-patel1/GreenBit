@@ -3,7 +3,10 @@ import {
   PlusCircle,
   X,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Calculator,
+  BookOpen,
+  TrendingDown
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../../components/ui/Card"
 import { Button } from "../../components/ui/Button"
@@ -18,7 +21,51 @@ import {
   Tooltip,
   Legend
 } from "recharts"
-import { API_BASE_URL } from "../../config/api"
+import { API_ENDPOINTS } from "../../config/api"
+import { useApiData } from "../../hooks/useApiData"
+import { useActivities } from "../../hooks/useActivities"
+
+// ─── Local Goal shape used on dashboard ───────────────────────────────────────
+interface DashboardGoal {
+  id: number
+  name: string
+  progress: number
+  target: string
+  deadline: string
+}
+
+// ─── Quick action shape ────────────────────────────────────────────────────────
+interface QuickAction {
+  id: string
+  title: string
+  desc: string
+  impact: number
+  points: number
+  type: string
+  name: string
+}
+
+// ─── Predictions shape ────────────────────────────────────────────────────────
+interface PredictionKPIs {
+  next_week: number
+  next_month: number
+  next_year: number
+  confidence_margin: number
+}
+
+interface EmissionDataPoint {
+  day: string
+  Emissions: number
+  Type: string
+  Upper?: number
+  Lower?: number
+}
+
+interface PredictionData {
+  history: EmissionDataPoint[]
+  forecast: EmissionDataPoint[]
+  kpis: PredictionKPIs
+}
 
 export interface DashboardPageProps {
   userProfile?: {
@@ -29,9 +76,10 @@ export interface DashboardPageProps {
     dietType?: string
   }
   onLogActivityClick: () => void
+  onNavigate?: (tab: string) => void
 }
 
-export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPageProps) => {
+export const DashboardPage = ({ userProfile, onLogActivityClick, onNavigate }: DashboardPageProps) => {
   const name = userProfile?.name || "Demo User"
   const baselineCO2 = userProfile?.calculatedCarbonBaseline || 5.8
   const targetScore = Math.max(10, Math.min(100, Math.round(100 - (baselineCO2 * 8))))
@@ -40,99 +88,54 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
   const [animatedScore, setAnimatedScore] = useState(0)
   const [animatedOffset, setAnimatedOffset] = useState(0)
 
-  // Dynamic lists
-  const [activities, setActivities] = useState<any[]>([])
-  const [goals] = useState<any[]>([
+  // Use Custom Hook for activities
+  const { activities, createActivity, deleteActivity } = useActivities()
+
+  const [goals] = useState<DashboardGoal[]>([
     { id: 1, name: "Limit personal car use", progress: 80, target: "Commutes via Metro", deadline: "June 25" },
     { id: 2, name: "Introduce meatless weekdays", progress: 60, target: "4 days vegetarian/vegan", deadline: "June 30" },
     { id: 3, name: "Reduce power utility bill", progress: 30, target: "Lower HVAC consumption", deadline: "July 10" },
     { id: 4, name: "Improve household recycling", progress: 100, target: "Recycle plastics & glass", deadline: "Completed" }
   ])
 
-  const [predictions, setPredictions] = useState<any>(null)
-  const [loadingPred, setLoadingPred] = useState(true)
+  // Use Custom Hook for predictions
+  const { data: predictions, loading: loadingPred } = useApiData<PredictionData | null>(
+    API_ENDPOINTS.PREDICTIONS || "/api/predictions",
+    { fallback: null }
+  )
+
   const [logNotification, setLogNotification] = useState<string | null>(null)
 
-  // Fetch activities from API/localstorage
-  const fetchActivities = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/activities`, {
-        headers: {
-          "Authorization": `Bearer ${sessionStorage.getItem("greenbit_auth_token") || ""}`
-        }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setActivities(data)
-      } else {
-        throw new Error()
-      }
-    } catch {
-      const cached = localStorage.getItem("tracker_activities")
-      if (cached) {
-        try {
-          setActivities(JSON.parse(cached))
-        } catch {
-          setActivities([])
-        }
-      } else {
-        const initialSeed = [
-          { id: 1, type: "transport", name: "Metro commute", value: 15, impact: -4.2, date: new Date().toISOString().split("T")[0] },
-          { id: 2, type: "food", name: "Vegetarian meals", value: 3, impact: -2.1, date: new Date().toISOString().split("T")[0] },
-          { id: 3, type: "energy", name: "Appliance eco use", value: 4, impact: -1.5, date: new Date(Date.now() - 86400000).toISOString().split("T")[0] }
-        ]
-        setActivities(initialSeed)
-        localStorage.setItem("tracker_activities", JSON.stringify(initialSeed))
-      }
+  // Predictions fallback if API fails
+  const mockPred: PredictionData = {
+    history: [
+      { day: "Day 1", Emissions: 14.5, Type: "Historical" },
+      { day: "Day 2", Emissions: 13.8, Type: "Historical" },
+      { day: "Day 3", Emissions: 15.2, Type: "Historical" },
+      { day: "Day 4", Emissions: 12.0, Type: "Historical" },
+      { day: "Day 5", Emissions: 11.2, Type: "Historical" },
+      { day: "Day 6", Emissions: 10.5, Type: "Historical" },
+      { day: "Day 7", Emissions: 9.8, Type: "Historical" },
+      { day: "Day 8", Emissions: 12.2, Type: "Historical" },
+      { day: "Day 9", Emissions: 10.1, Type: "Historical" },
+      { day: "Day 10", Emissions: 9.5, Type: "Historical" }
+    ],
+    forecast: [
+      { day: "Day 11", Emissions: 8.8, Upper: 11.5, Lower: 6.1, Type: "Forecast" },
+      { day: "Day 12", Emissions: 8.2, Upper: 10.9, Lower: 5.5, Type: "Forecast" },
+      { day: "Day 13", Emissions: 7.6, Upper: 10.3, Lower: 4.9, Type: "Forecast" },
+      { day: "Day 14", Emissions: 7.1, Upper: 9.8, Lower: 4.4, Type: "Forecast" },
+      { day: "Day 15", Emissions: 6.5, Upper: 9.2, Lower: 3.8, Type: "Forecast" }
+    ],
+    kpis: {
+      next_week: 174.0,
+      next_month: 165.0,
+      next_year: 1.38,
+      confidence_margin: 87.0
     }
-  }, [])
-
-  // Load activities and predictions
-  useEffect(() => {
-    fetchActivities()
-    
-    // Fetch predictions
-    fetch(`${API_BASE_URL}/api/predictions`)
-      .then(res => {
-        if (!res.ok) throw new Error()
-        return res.json()
-      })
-      .then(data => {
-        setPredictions(data)
-        setLoadingPred(false)
-      })
-      .catch(() => {
-        const mockPred = {
-          history: [
-            { day: "Day 1", Emissions: 14.5, Type: "Historical" },
-            { day: "Day 2", Emissions: 13.8, Type: "Historical" },
-            { day: "Day 3", Emissions: 15.2, Type: "Historical" },
-            { day: "Day 4", Emissions: 12.0, Type: "Historical" },
-            { day: "Day 5", Emissions: 11.2, Type: "Historical" },
-            { day: "Day 6", Emissions: 10.5, Type: "Historical" },
-            { day: "Day 7", Emissions: 9.8, Type: "Historical" },
-            { day: "Day 8", Emissions: 12.2, Type: "Historical" },
-            { day: "Day 9", Emissions: 10.1, Type: "Historical" },
-            { day: "Day 10", Emissions: 9.5, Type: "Historical" }
-          ],
-          forecast: [
-            { day: "Day 11", Emissions: 8.8, Upper: 11.5, Lower: 6.1, Type: "Forecast" },
-            { day: "Day 12", Emissions: 8.2, Upper: 10.9, Lower: 5.5, Type: "Forecast" },
-            { day: "Day 13", Emissions: 7.6, Upper: 10.3, Lower: 4.9, Type: "Forecast" },
-            { day: "Day 14", Emissions: 7.1, Upper: 9.8, Lower: 4.4, Type: "Forecast" },
-            { day: "Day 15", Emissions: 6.5, Upper: 9.2, Lower: 3.8, Type: "Forecast" }
-          ],
-          kpis: {
-            next_week: 174.0,
-            next_month: 165.0,
-            next_year: 1.38,
-            confidence_margin: 87.0
-          }
-        }
-        setPredictions(mockPred)
-        setLoadingPred(false)
-      })
-  }, [fetchActivities])
+  }
+  
+  const currentPredictions = predictions || mockPred
 
   // Carbon Saved total
   const totalCarbonSaved = useMemo(() => {
@@ -172,29 +175,12 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
   }, [targetScore, totalCarbonSaved])
 
   const handleDeleteActivity = useCallback(async (id: number) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/activities/${id}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${sessionStorage.getItem("greenbit_auth_token") || ""}`
-        }
-      })
-      if (response.ok) {
-        setActivities((prev) => prev.filter((act) => act.id !== id))
-      } else {
-        throw new Error()
-      }
-    } catch {
-      // Local fallback deletion
-      const updated = activities.filter((act) => act.id !== id)
-      setActivities(updated)
-      localStorage.setItem("tracker_activities", JSON.stringify(updated))
-    }
-  }, [activities])
+    await deleteActivity(id)
+  }, [deleteActivity])
 
   // Pre-configured Quick Action Recommendations
-  const quickActions = useMemo(() => {
-    const actions = []
+  const quickActions = useMemo<QuickAction[]>(() => {
+    const actions: QuickAction[] = []
     if (userProfile?.primaryTransport === "car") {
       actions.push({
         id: "metro",
@@ -230,9 +216,8 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
   }, [userProfile])
 
   // Handle Quick Add Action
-  const handleQuickAdd = async (act: any) => {
+  const handleQuickAdd = async (act: QuickAction) => {
     const newActivity = {
-      id: Date.now(),
       type: act.type,
       name: act.name,
       value: 1,
@@ -240,29 +225,10 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
       date: new Date().toISOString().split("T")[0]
     }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/activities`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${sessionStorage.getItem("greenbit_auth_token") || ""}`
-        },
-        body: JSON.stringify(newActivity)
-      })
-      if (response.ok) {
-        const added = await response.json()
-        setActivities(prev => [added, ...prev])
-      } else {
-        throw new Error()
-      }
-    } catch {
-      const updated = [newActivity, ...activities]
-      setActivities(updated)
-      localStorage.setItem("tracker_activities", JSON.stringify(updated))
-    }
+    await createActivity(newActivity)
 
     // Trigger floating notification
-    setLogNotification(`Success! Logged "${act.title}" (${act.impact} kg CO2e, +${act.points} Eco Points)`)
+    setLogNotification(`✓ Logged "${act.title}" — ${act.impact} kg CO₂e saved, +${act.points} Eco Points`)
     setTimeout(() => setLogNotification(null), 4000)
 
     // Dispatch custom gamification event to update Sidebar
@@ -272,12 +238,28 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
     window.dispatchEvent(event)
   }
 
+  // Personalized context line
+  const transportLabel: Record<string, string> = {
+    car: "driving", metro: "metro", bus: "bus", bike_walk: "cycling/walking"
+  }
+  const dietLabel: Record<string, string> = {
+    vegan: "vegan", vegetarian: "vegetarian", pescatarian: "pescatarian",
+    balanced: "balanced", meat_heavy: "meat-heavy"
+  }
+  const transportText = userProfile?.primaryTransport ? transportLabel[userProfile.primaryTransport] ?? "transit" : "transit"
+  const dietText = userProfile?.dietType ? dietLabel[userProfile.dietType] ?? "mixed" : "mixed"
+
   return (
     <div className="space-y-8 animate-fade-in relative max-w-6xl mx-auto">
-      {/* Toast Notification for Quick Action */}
+      {/* Toast Notification for Quick Action — accessible live region */}
       {logNotification && (
-        <div className="fixed bottom-6 right-6 z-50 bg-brand-forest text-brand-chalk px-4 py-3 rounded-lg shadow-md flex items-center gap-2.5 border border-brand-forest/20">
-          <CheckCircle2 className="h-4 w-4 text-brand-leaf" />
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="fixed bottom-6 right-6 z-50 bg-brand-forest text-brand-chalk px-4 py-3 rounded-lg shadow-md flex items-center gap-2.5 border border-brand-forest/20"
+        >
+          <CheckCircle2 className="h-4 w-4 text-brand-leaf" aria-hidden="true" />
           <span className="text-xs font-body font-medium">{logNotification}</span>
         </div>
       )}
@@ -289,11 +271,11 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
             Environmental Impact Statement
           </h1>
           <p className="text-sm text-brand-forest/60 font-body mt-1">
-            Real-time carbon accounting and predictive forecasting for {name} in {userProfile?.city || "San Francisco"}.
+            Real-time carbon accounting for <strong>{name}</strong> in {userProfile?.city || "your city"} — {transportText} commuter · {dietText} diet.
           </p>
         </div>
         <div className="shrink-0 mt-4 md:mt-0">
-          <Button variant="outline" className="border-brand-forest/25 text-brand-forest hover:bg-brand-forest/5 font-body text-xs" onClick={onLogActivityClick} leftIcon={<PlusCircle className="h-4 w-4" />}>
+          <Button variant="outline" className="border-brand-forest/25 text-brand-forest hover:bg-brand-forest/5 font-body text-xs" onClick={onLogActivityClick} leftIcon={<PlusCircle className="h-4 w-4" aria-hidden="true" />}>
             Log Impact Activity
           </Button>
         </div>
@@ -328,7 +310,7 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
               -8.4% <span className="text-xs font-body font-light text-brand-forest/60">vs last month</span>
             </div>
             <div className="flex items-center text-[10px] text-brand-forest/50 space-x-1 font-body">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-leaf" />
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-leaf" aria-hidden="true" />
               <span>Target: -10% reduction</span>
             </div>
           </CardContent>
@@ -367,12 +349,46 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
         </Card>
       </div>
 
-      {/* "What should I do next?" Recommendation Widget */}
+      {/* CTA Cards — guide users to key features */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <button
+          onClick={() => onNavigate?.("activity")}
+          className="flex items-center space-x-4 p-4 bg-brand-forest text-brand-chalk rounded-xl border border-brand-forest/20 hover:bg-brand-forest/90 transition-colors text-left group"
+          aria-label="Calculate your carbon footprint — go to Activity Tracker"
+        >
+          <div className="bg-brand-leaf/20 p-3 rounded-lg shrink-0">
+            <Calculator className="h-5 w-5 text-brand-leaf" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-sm font-heading font-semibold text-white group-hover:text-brand-leaf transition-colors">Calculate My Footprint →</p>
+            <p className="text-[11px] text-brand-chalk/60 font-body mt-0.5">Log transport, energy & food to get your personalized score.</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => onNavigate?.("rag")}
+          className="flex items-center space-x-4 p-4 bg-brand-mist text-brand-forest rounded-xl border border-brand-forest/10 hover:bg-brand-leaf/10 transition-colors text-left group"
+          aria-label="Explore Green Tips — go to Climate Library"
+        >
+          <div className="bg-brand-leaf/20 p-3 rounded-lg shrink-0">
+            <BookOpen className="h-5 w-5 text-brand-leaf" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-sm font-heading font-semibold text-brand-forest group-hover:text-brand-leaf transition-colors">Explore Green Tips →</p>
+            <p className="text-[11px] text-brand-forest/60 font-body mt-0.5">Browse sustainability guides and ask the AI Climate Library.</p>
+          </div>
+        </button>
+      </div>
+
+      {/* Personalized Actions for You */}
       <Card className="border-brand-forest/10 bg-[#F4F3EE] shadow-none">
         <CardHeader className="pb-3">
           <div>
-            <CardTitle className="text-lg font-heading font-normal">Targeted Reduction Recommendations</CardTitle>
-            <CardDescription className="text-xs">Suggested operational changes based on carbon audit simulations.</CardDescription>
+            <CardTitle className="text-lg font-heading font-normal flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-brand-leaf" aria-hidden="true" />
+              Personalized Actions for You
+            </CardTitle>
+            <CardDescription className="text-xs">Smart suggestions based on your {transportText} commute and {dietText} diet profile.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -381,16 +397,17 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] uppercase tracking-wider font-semibold text-brand-forest/50 font-body">{act.type}</span>
-                  <span className="text-[10px] font-semibold text-brand-leaf font-body">{act.impact} kg CO2e</span>
+                  <span className="text-[10px] font-semibold text-brand-leaf font-body">{act.impact} kg CO₂e</span>
                 </div>
                 <h4 className="text-sm font-heading font-medium text-brand-forest">{act.title}</h4>
                 <p className="text-[11px] text-brand-forest/70 leading-relaxed font-body">{act.desc}</p>
               </div>
-              <button 
-                className="mt-4 w-full text-[10px] py-1.5 border border-brand-forest/20 rounded font-body text-brand-forest hover:bg-brand-forest/5 transition-colors"
-                onClick={() => handleQuickAdd(act)}
+              <button
+                className="mt-4 w-full text-[10px] py-1.5 border border-brand-forest/20 rounded font-body text-brand-forest hover:bg-brand-forest/5 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-leaf/40"
+                onClick={() => void handleQuickAdd(act)}
+                aria-label={`Log ${act.title} action — saves ${Math.abs(act.impact)} kg CO₂e and earns ${act.points} eco points`}
               >
-                Log Reductions (+{act.points} pts)
+                Log Action (+{act.points} pts)
               </button>
             </div>
           ))}
@@ -402,15 +419,15 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
         {/* Trend graph card */}
         <Card className="lg:col-span-2 border-brand-forest/10 bg-white shadow-none">
           <CardHeader>
-            <CardTitle className="font-heading font-normal">Emissions Progression Trend</CardTitle>
+            <CardTitle className="font-heading font-normal">Emissions Trend</CardTitle>
             <CardDescription>
-              Weekly project comparison of logged activity offsets against primary baseline assumptions.
+              Weekly comparison of logged activity offsets against your personal baseline.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {/* Clean Editorial SVG Chart */}
-            <div className="h-56 w-full relative pt-2">
-              <svg className="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
+            <div className="h-56 w-full relative pt-2" role="img" aria-label="Line chart showing emissions trend decreasing from onboarding baseline over 5 weeks">
+              <svg className="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none" aria-hidden="true">
                 <line x1="0" y1="50" x2="500" y2="50" stroke="#1A231F" strokeOpacity="0.05" strokeWidth="1" />
                 <line x1="0" y1="100" x2="500" y2="100" stroke="#1A231F" strokeOpacity="0.05" strokeWidth="1" />
                 <line x1="0" y1="150" x2="500" y2="150" stroke="#1A231F" strokeOpacity="0.05" strokeWidth="1" />
@@ -437,10 +454,10 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
                 <circle cx="500" cy="50" r="3" fill="#3A6047" />
               </svg>
 
-              <div className="absolute top-[65px] left-2 text-[9px] font-semibold text-brand-forest/40 uppercase tracking-wider font-body">Onboarding Baseline</div>
-              <div className="absolute top-[35px] right-2 text-[9px] font-semibold text-brand-leaf uppercase tracking-wider font-body">Actual Performance</div>
+              <div className="absolute top-[65px] left-2 text-[9px] font-semibold text-brand-forest/40 uppercase tracking-wider font-body">Baseline</div>
+              <div className="absolute top-[35px] right-2 text-[9px] font-semibold text-brand-leaf uppercase tracking-wider font-body">Your Performance</div>
             </div>
-            <div className="flex justify-between text-[10px] text-brand-forest/40 pt-4 px-2 font-body">
+            <div className="flex justify-between text-[10px] text-brand-forest/40 pt-4 px-2 font-body" aria-hidden="true">
               <span>Week 1</span>
               <span>Week 2</span>
               <span>Week 3</span>
@@ -453,12 +470,16 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
         {/* Sustainability Score circular gauge */}
         <Card className="border-brand-forest/10 bg-white shadow-none flex flex-col justify-between">
           <CardHeader>
-            <CardTitle className="font-heading font-normal">Sustainability Index</CardTitle>
-            <CardDescription>Aggregated carbon rating indicator.</CardDescription>
+            <CardTitle className="font-heading font-normal">Sustainability Score</CardTitle>
+            <CardDescription>Your aggregated carbon performance rating.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center pt-2">
-            <div className="relative w-40 h-40 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+            <div
+              className="relative w-40 h-40 flex items-center justify-center"
+              role="img"
+              aria-label={`Sustainability score: ${animatedScore} out of 100`}
+            >
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
                 <circle
                   cx="50"
                   cy="50"
@@ -480,12 +501,12 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
                   className="transition-all duration-700 ease-out"
                 />
               </svg>
-              <div className="absolute flex flex-col items-center">
+              <div className="absolute flex flex-col items-center" aria-hidden="true">
                 <span className="text-4xl font-heading font-normal text-brand-forest">
                   {animatedScore}
                 </span>
                 <span className="text-[9px] text-brand-forest/40 uppercase font-semibold tracking-wider font-body">
-                  Performance Index
+                  / 100
                 </span>
               </div>
             </div>
@@ -505,42 +526,42 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
           <CardHeader className="flex flex-row items-center justify-between border-b border-brand-forest/5 pb-4">
             <div>
               <CardTitle className="font-heading font-normal">Activity Log</CardTitle>
-              <CardDescription>Timeline of operations recorded today.</CardDescription>
+              <CardDescription>Timeline of sustainability actions recorded today.</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={onLogActivityClick} className="p-1 text-brand-leaf hover:bg-brand-forest/5" aria-label="Add activity">
+            <Button variant="ghost" size="sm" onClick={onLogActivityClick} className="p-1 text-brand-leaf hover:bg-brand-forest/5" aria-label="Add new activity">
               <PlusCircle className="h-5 w-5" aria-hidden="true" />
             </Button>
           </CardHeader>
           <CardContent className="p-0">
             {activities.length > 0 ? (
-              <div className="divide-y divide-brand-forest/10 max-h-[350px] overflow-y-auto">
+              <ul className="divide-y divide-brand-forest/10 max-h-[350px] overflow-y-auto" aria-label="Recent activities">
                 {activities.map((act) => (
-                  <div key={act.id} className="p-4 flex items-center justify-between hover:bg-brand-sand/30 transition-colors">
+                  <li key={act.id} className="p-4 flex items-center justify-between hover:bg-brand-sand/30 transition-colors">
                     <div className="flex items-center space-x-3 text-left font-body">
-                      <div className="w-2.5 h-2.5 rounded-full bg-brand-leaf shrink-0" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-brand-leaf shrink-0" aria-hidden="true" />
                       <div>
                         <p className="text-xs font-semibold text-brand-forest">{act.name}</p>
-                        <p className="text-[10px] text-brand-forest/50">{act.date || act.timestamp || "Today"}</p>
+                        <p className="text-[10px] text-brand-forest/50">{act.date || "Today"}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3 shrink-0">
                       <span className="text-xs font-mono text-brand-leaf">
-                        {act.impact} kg CO2e
+                        {act.impact} kg CO₂e
                       </span>
                       <button
-                        onClick={() => handleDeleteActivity(act.id)}
-                        className="text-brand-forest/30 hover:text-brand-forest p-1 rounded transition-colors"
-                        aria-label={`Delete activity ${act.name}`}
+                        onClick={() => void handleDeleteActivity(act.id)}
+                        className="text-brand-forest/30 hover:text-brand-forest p-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-brand-leaf/40"
+                        aria-label={`Delete activity: ${act.name}`}
                       >
                         <X className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
               <div className="p-8 text-center text-xs text-brand-forest/40 font-body flex flex-col items-center justify-center space-y-2">
-                <AlertCircle className="h-8 w-8 text-brand-forest/20" />
+                <AlertCircle className="h-8 w-8 text-brand-forest/20" aria-hidden="true" />
                 <p>No logged activities found.</p>
                 <Button variant="outline" size="sm" onClick={onLogActivityClick}>Log first activity</Button>
               </div>
@@ -552,9 +573,9 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
         <Card className="border-brand-forest/10 bg-white shadow-none">
           <CardHeader className="border-b border-brand-forest/5 pb-4">
             <div className="flex items-center space-x-2">
-              <CardTitle className="font-heading font-normal">Active Initiatives</CardTitle>
+              <CardTitle className="font-heading font-normal">Active Goals</CardTitle>
             </div>
-            <CardDescription>Target milestones and long-term emission offset goals.</CardDescription>
+            <CardDescription>Your personal carbon reduction milestones.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
             {goals.map((goal) => (
@@ -568,7 +589,14 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
                     {goal.progress}%
                   </span>
                 </div>
-                <div className="w-full bg-[#EAECE9] h-1 rounded overflow-hidden relative">
+                <div
+                  className="w-full bg-[#EAECE9] h-1 rounded overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={goal.progress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`${goal.name}: ${goal.progress}% complete`}
+                >
                   <div
                     className={`h-full transition-all duration-300 ${
                       goal.progress === 100 ? "bg-brand-leaf" : "bg-brand-forest/70"
@@ -586,18 +614,18 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
         </Card>
       </div>
 
-      {/* Prediction Module Section */}
+      {/* Your Emissions Forecast Section */}
       <Card className="border-brand-forest/10 bg-white shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 font-heading font-normal">
-            <span>Regression Model Forecasts</span>
+            <span>Your Emissions Forecast</span>
           </CardTitle>
           <CardDescription>
-            Time-series modeling projections mapping future emission levels using standard local parameters.
+            AI-powered projections of your future carbon output based on current habits and logged activities.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {loadingPred || !predictions ? (
+          {loadingPred || !currentPredictions ? (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 {[1, 2, 3].map((n) => (
@@ -615,37 +643,37 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
               {/* Forecast stats segment */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="bg-[#F4F3EE] p-4 rounded border border-brand-forest/5 text-left">
-                  <span className="text-[9px] uppercase font-semibold tracking-wider text-brand-forest/55">Next Week Estimate</span>
+                  <span className="text-[9px] uppercase font-semibold tracking-wider text-brand-forest/55">Next 7 Days</span>
                   <div className="text-xl font-heading font-normal text-brand-forest mt-1">
-                    {predictions.kpis.next_week} <span className="text-[10px] font-normal text-brand-forest/50">kg CO₂e/mo</span>
+                    {currentPredictions.kpis.next_week} <span className="text-[10px] font-normal text-brand-forest/50">kg CO₂e</span>
                   </div>
-                  <span className="text-[9px] text-brand-forest/40">Confidence range: ±{predictions.kpis.confidence_margin} kg</span>
+                  <span className="text-[9px] text-brand-forest/40">±{currentPredictions.kpis.confidence_margin} kg confidence range</span>
                 </div>
 
                 <div className="bg-[#F4F3EE] p-4 rounded border border-brand-forest/5 text-left">
-                  <span className="text-[9px] uppercase font-semibold tracking-wider text-brand-forest/55">Next Month Estimate</span>
+                  <span className="text-[9px] uppercase font-semibold tracking-wider text-brand-forest/55">Next 30 Days</span>
                   <div className="text-xl font-heading font-normal text-brand-forest mt-1">
-                    {predictions.kpis.next_month} <span className="text-[10px] font-normal text-brand-forest/50">kg CO₂e/mo</span>
+                    {currentPredictions.kpis.next_month} <span className="text-[10px] font-normal text-brand-forest/50">kg CO₂e</span>
                   </div>
                   <span className="text-[9px] text-brand-forest/40">Statistical forecast baseline</span>
                 </div>
 
                 <div className="bg-[#EAECE9] p-4 rounded border border-brand-leaf/10 text-left">
-                  <span className="text-[9px] uppercase font-semibold tracking-wider text-brand-leaf">Long Term Target</span>
+                  <span className="text-[9px] uppercase font-semibold tracking-wider text-brand-leaf">Annual Estimate</span>
                   <div className="text-xl font-heading font-normal text-brand-leaf mt-1">
-                    {predictions.kpis.next_year} <span className="text-[10px] font-normal text-brand-forest/50">T / yr</span>
+                    {currentPredictions.kpis.next_year} <span className="text-[10px] font-normal text-brand-forest/50">T / yr</span>
                   </div>
                   <span className="text-[9px] text-brand-forest/40">Annual lifestyle offset estimate</span>
                 </div>
               </div>
 
               {/* Area chart visual */}
-              <div className="h-64 w-full">
+              <div className="h-64 w-full" role="img" aria-label="Area chart showing historical and forecast carbon emissions over time">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={[
-                      ...predictions.history,
-                      ...predictions.forecast
+                      ...currentPredictions.history,
+                      ...currentPredictions.forecast
                     ]}
                     margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                   >
@@ -662,7 +690,7 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
                       stroke="none"
                       fill="#3A6047"
                       fillOpacity={0.05}
-                      name="Margin Limit"
+                      name="Upper Bound"
                     />
                     <Area
                       type="monotone"
@@ -678,7 +706,7 @@ export const DashboardPage = ({ userProfile, onLogActivityClick }: DashboardPage
                       stroke="#3A6047"
                       strokeWidth={1.5}
                       fill="none"
-                      name="Baseline Carbon Curve"
+                      name="Carbon Emissions"
                     />
                   </AreaChart>
                 </ResponsiveContainer>

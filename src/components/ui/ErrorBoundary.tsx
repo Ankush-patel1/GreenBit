@@ -22,6 +22,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public componentDidCatch(_error: Error, _errorInfo: ErrorInfo): void {
     // In production, forward to your error monitoring service (e.g. Sentry):
     // reportError(error, errorInfo)
@@ -45,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <p className="text-xs text-brand-forest/65 max-w-sm mb-6 leading-relaxed font-body">
             An unexpected error occurred while rendering this module. We've logged the issue and are looking into it.
           </p>
-          {this.state.error && (
+          {this.state.error && import.meta.env.DEV && (
             <div className="w-full bg-brand-forest text-brand-chalk/80 p-4 rounded-xl text-left font-mono text-[10px] overflow-auto max-h-40 mb-6 border border-white/5 leading-relaxed">
               {this.state.error.toString()}
             </div>

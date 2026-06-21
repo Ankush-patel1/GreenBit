@@ -29,19 +29,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          "inline-flex items-center justify-center font-heading font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-leaf/45 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]",
+          "inline-flex items-center justify-center font-heading font-medium rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand-leaf/45 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.97]",
           // Variants
           {
-            "bg-brand-forest text-brand-chalk hover:bg-brand-forest/90 shadow-sm": variant === "primary",
-            "bg-brand-leaf text-brand-chalk hover:bg-brand-leaf/90 shadow-sm": variant === "secondary",
-            "border border-brand-forest/15 bg-transparent text-brand-forest hover:bg-brand-forest/5 hover:border-brand-forest/30": variant === "outline",
+            "bg-brand-forest text-brand-chalk hover:bg-brand-forest/90 shadow-[0_4px_14px_0_rgba(16,32,22,0.25)] hover:shadow-[0_6px_20px_rgba(16,32,22,0.3)] hover:-translate-y-0.5": variant === "primary",
+            "bg-brand-leaf text-brand-chalk hover:bg-brand-leaf/90 shadow-[0_4px_14px_0_rgba(42,90,59,0.25)] hover:shadow-[0_6px_20px_rgba(42,90,59,0.3)] hover:-translate-y-0.5": variant === "secondary",
+            "border-2 border-brand-forest/20 bg-transparent text-brand-forest hover:bg-brand-forest/5 hover:border-brand-forest/40": variant === "outline",
             "text-brand-forest hover:bg-brand-forest/5 bg-transparent": variant === "ghost",
           },
           // Sizes
           {
-            "px-3 py-1.5 text-xs": size === "sm",
-            "px-4 py-2 text-sm": size === "md",
-            "px-6 py-3 text-base": size === "lg",
+            "px-4 py-2 text-xs": size === "sm",
+            "px-5 py-2.5 text-sm": size === "md",
+            "px-8 py-3.5 text-base": size === "lg",
           },
           className
         )}
